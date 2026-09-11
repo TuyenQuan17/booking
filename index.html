@@ -27,10 +27,10 @@ body{margin:0;background:#f7f4f7;color:#28242b;font:15px system-ui;display:grid;
 <div class="app"><div class="top"><div class="ey">NICK'S VERY OFFICIAL BOOKING SYSTEM™</div><h1>When are you free?</h1><div class="sub">When's a good time? Pick a date. Let’s see how brave you are. 🤍</div></div>
 <div class="body"><div class="bar"><div class="month" id="month"></div><div class="nav"><button onclick="mv(-1)">‹</button><button onclick="mv(1)">›</button></div></div>
 <div class="week"><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div></div><div class="grid" id="grid"></div>
-<div class="bottom"><div class="chosen"><b id="chosen">No date selected</b><span id="hint">Choose wisely. I may judge your choice. 😌</span></div><button class="book" id="book" disabled onclick="request()">Request this date 👀</button></div><div class="tiny" style="text-align:center;margin-top:14px">No refunds for flirting. Calendar availability may be emotionally misleading. 😂</div></div></div>
+<div class="bottom"><div class="chosen"><b id="chosen">No 🙄 date selected</b><span id="hint">Choose wisely. I may judge your choice. 😌</span></div><button class="book" id="book" disabled onclick="request()">Request this date 👀</button></div><div class="tiny" style="text-align:center;margin-top:14px">No refunds for flirting. Calendar availability may be emotionally misleading. 😂</div></div></div>
 <div class="overlay" id="ov"><div class="modal"><div class="emoji" id="emo"></div><h2 id="ttl"></h2><p id="txt"></p><button class="close" onclick="ov.style.display='none'">Okay, very professional</button></div></div>
 <script>
-let v=new Date(2026,8,1),sel=null,selectedDates=[];
+let v=new Date(2026,8,1),sel=null;
 let s=JSON.parse(localStorage.getItem("nickCalendarData")||"{}");
 
 function dateInfo(k){
@@ -53,34 +53,21 @@ function draw(){
   for(let i=0;i<f;i++){let e=document.createElement("div");e.className="day empty";grid.append(e)}
   for(let d=1;d<=n;d++){
     let x=new Date(y,m,d),k=key(x),info=dateInfo(k),e=document.createElement("div");
-    const isSelected=selectedDates.includes(k);
-    e.className="day "+info[0]+(isSelected?" sel":"");
-    e.innerHTML="<b>"+d+"</b><div class=status aria-hidden=\"true\"></div>"+(isSelected?"<span class=\"bookDot\">•</span>":"");
+    e.className="day "+info[0]+(sel===k?" sel":"");
+    e.innerHTML="<b>"+d+"</b><div class=status aria-hidden=\"true\"></div>"+(sel===k?"<span class=\"bookDot\">•</span>":"");
     e.onclick=()=>pick(k,x,info);
     grid.append(e);
   }
 }
 
 function pick(k,d,info){
-  const i=selectedDates.indexOf(k);
-  if(i>=0) selectedDates.splice(i,1);
-  else selectedDates.push(k);
-  sel=selectedDates[selectedDates.length-1]||null;
-
-  if(selectedDates.length){
-    chosen.textContent=selectedDates.length+" date"+(selectedDates.length===1?"":"s")+" selected";
-    hint.textContent=selectedDates.map(x=>new Date(x+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})).join(" • ");
-    book.disabled=false;
-  }else{
-    chosen.textContent="No date selected";
-    hint.textContent="Choose wisely. I may judge your choice. 😌";
-    book.disabled=true;
-  }
-
-  // First popup appears immediately after choosing/toggling a date.
+  sel=k;
+  chosen.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+  hint.textContent=info[1];
   emo.textContent=info[2]||"👀";
   ttl.textContent=info[3]||"A date, apparently.";
   txt.textContent=info[4]||info[1]||"This date is available.";
+  book.disabled=false;
   ov.style.display="grid";
   draw();
 }
@@ -88,22 +75,19 @@ function pick(k,d,info){
 function mv(n){v.setMonth(v.getMonth()+n);draw()}
 function enterCalendar(){document.getElementById("intro").style.display="none"}
 function request(){
-  if(!selectedDates.length)return;
-  document.getElementById("confirmDate").textContent =
-    selectedDates.map(x=>new Date(x+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})).join(" • ");
+  if(!sel)return;
+  document.getElementById("confirmDate").textContent=
+    new Date(sel+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
   ov.style.display="none";
   document.getElementById("confirmOv").style.display="grid";
 }
 async function confirmBooking(){
-  if(!selectedDates.length)return;
-  const ok=await saveSharedBooking(selectedDates);
+  if(!sel)return;
+  const ok=await saveSharedBooking(sel);
   if(!ok)return;
-
-  selectedDates.forEach(d=>{
-    s[d]=["good","Booked ✓","💌","Booked. No take-backsies. 😌","Because once you book it, I get to tease you about it. 😌"];
-  });
+  s[sel]=["good","Booked ✓","💌","Booked. No take-backsies. 😌","Because once you book it, I get to tease you about it. 😌"];
   localStorage.setItem("nickCalendarData",JSON.stringify(s));
-  chosen.textContent="✓ Booked: "+selectedDates.length+" date"+(selectedDates.length===1?"":"s");
+  chosen.textContent="✓ Booked: "+new Date(sel+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
   hint.textContent="Booking saved online.";
   book.textContent="Booked ✓";
   book.disabled=true;
@@ -111,20 +95,20 @@ async function confirmBooking(){
   draw();
 }
 
-async function saveSharedBooking(dates){
+async function saveSharedBooking(date){
   try{
-    const rows=dates.map(date=>({date}));
     const r=await fetch(SUPABASE_URL+"/rest/v1/bookings",{
       method:"POST",
       headers:{
         "apikey":SUPABASE_ANON_KEY,
         "Authorization":"Bearer "+SUPABASE_ANON_KEY,
         "Content-Type":"application/json",
-        "Prefer":"return=representation,resolution=ignore-duplicates"
+        "Prefer":"return=representation"
       },
-      body:JSON.stringify(rows)
+      body:JSON.stringify({id:1,date})
     });
     if(r.ok)return true;
+    if(r.status===409){alert("A date has already been booked.");return false}
     alert("Sorry, the booking could not be saved.");
   }catch(e){alert("No internet connection — the booking was not saved.")}
   return false;
@@ -132,16 +116,18 @@ async function saveSharedBooking(dates){
 
 async function loadSharedBooking(){
   try{
-    const r=await fetch(SUPABASE_URL+"/rest/v1/bookings?select=date&order=date.asc",{headers:{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/bookings?id=eq.1&select=date",{headers:{
       "apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+SUPABASE_ANON_KEY
     }});
     if(!r.ok)return;
     const rows=await r.json();
-    if(rows.length){
-      rows.forEach(row=>{
-        if(!s[row.date]) s[row.date]=["good","Booked ✓","💌","Booked. No take-backsies. 😌","This date has already been booked. 😌"];
-      });
-      localStorage.setItem("nickCalendarData",JSON.stringify(s));
+    if(rows[0]&&rows[0].date){
+      sel=rows[0].date;
+      const bd=new Date(sel+"T12:00:00");
+      chosen.textContent="✓ Booked: "+bd.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+      hint.textContent="Booking saved online.";
+      book.textContent="Booked ✓";
+      book.disabled=true;
       draw();
     }
   }catch(e){}
