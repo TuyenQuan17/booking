@@ -35,26 +35,24 @@ let s=JSON.parse(localStorage.getItem("nickCalendarData")||"{}");
 function dateInfo(k){
   const d=new Date(k+"T12:00:00");
   const busy=d>=new Date("2026-09-17T00:00:00") && d<=new Date("2026-10-08T23:59:59");
-  return s[k] || (busy
-    ? ["busy","In Korea 🇰🇷","✈️","Unfortunately… 😏","I'm in Korea during this period. Try again later, impatient one. 🇰🇷"]
-    : ["good","Free","👀","Good news!","This date is currently available."]);
+  if(s[k]) return s[k];
+  return busy
+    ? ["busy","Unfortunately… I'm in Korea 🇰🇷","✈️","Unfortunately… 😏","I'm in Korea during this period. Try again later, impatient one. 🇰🇷"]
+    : ["good","Free","👀","Good news!","This date is currently available. What are you planning, exactly? 😌"];
 }
 function key(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function draw(){month.textContent=v.toLocaleDateString("en-US",{month:"long",year:"numeric"});grid.innerHTML="";let y=v.getFullYear(),m=v.getMonth(),f=(new Date(y,m,1).getDay()+6)%7,n=new Date(y,m+1,0).getDate();for(let i=0;i<f;i++){let e=document.createElement("div");e.className="day empty";grid.append(e)}for(let d=1;d<=n;d++){let x=new Date(y,m,d),k=key(x),a=s[k]||[d%3?"good":"busy",d%3?"Potentially free":"Probably busy"],e=document.createElement("div");e.className="day "+a[0]+(sel===k?" sel":"");e.innerHTML="<b>"+d+"</b><div class=status aria-hidden=\"true\"></div>";e.onclick=()=>pick(k,x,a);grid.append(e)}}
-function mv(n){v.setMonth(v.getMonth()+n);draw()}function pick(k,d,a){sel=k;chosen.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});hint.textContent=a[1];book.disabled=false;draw()}
-function request(){if(!sel)return;let d=new Date(sel+"T12:00:00");document.getElementById("confirmDate").textContent="You selected "+d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+".";document.getElementById("confirmOv").style.display="grid"}
-function confirmBooking(){if(!sel)return;localStorage.setItem("nickBookedDate",sel);let d=new Date(sel+"T12:00:00");chosen.textContent="✓ Booked: "+d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});hint.textContent="Booked. No take-backsies. 😌";book.textContent="Booked ✓";book.disabled=true;document.getElementById("confirmOv").style.display="none"}const savedBooking=localStorage.getItem("nickBookedDate");if(savedBooking){sel=savedBooking;let bd=new Date(savedBooking+"T12:00:00");chosen.textContent="✓ Booked: "+bd.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});hint.textContent="Booked. No take-backsies. 😌";book.textContent="Booked ✓";book.disabled=true;let parts=savedBooking.split("-");v=new Date(+parts[0],+parts[1]-1,1)}
-draw();
-
-function enterCalendar(){document.getElementById('intro').style.display='none'}
-const noButton=document.getElementById('noBtn');
-noButton.addEventListener('click',()=>{
-  const row=noButton.parentElement;
-  const maxX=Math.max(10,row.clientWidth-noButton.offsetWidth);
-  const maxY=Math.max(10,row.clientHeight-noButton.offsetHeight);
-  const x=Math.random()*maxX-maxX/2;
-  const y=Math.random()*maxY-maxY/2;
-  noButton.style.transform=`translate(${x}px,${y}px)`;
+function draw(){
+  month.textContent=v.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  grid.innerHTML="";
+  let y=v.getFullYear(),m=v.getMonth(),f=(new Date(y,m,1).getDay()+6)%7,n=new Date(y,m+1,0).getDate();
+  for(let i=0;i<f;i++){let e=document.createElement("div");e.className="day empty";grid.append(e)}
+  for(let d=1;d<=n;d++){
+    let x=new Date(y,m,d),k=key(x),info=dateInfo(k),e=document.createElement("div");
+    e.className="day "+info[0]+(sel===k?" sel":"");
+    e.innerHTML="<b>"+d+"</b><div class=status aria-hidden=\"true\"></div>";
+    e.onclick=()=>pick(k,x,info);
+    grid.append(e)
+  }
 });
 </script><div class="overlay" id="confirmOv"><div class="modal confirmModal">
 <div class="emoji">👀</div><h2>Are you sure? 👀</h2>
